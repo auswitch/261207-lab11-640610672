@@ -5,34 +5,61 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { checkToken } from "../../../../backendLibs/checkToken";
 
-export default function roomIdMessageRoute(req, res) {
-  if (req.method === "GET") {
-    //check token
+export default function roomIdMessageRoute(req, res) 
+{
+  if (req.method === "GET") 
+  {
+    const user = checkToken(req);
+    if(!user)
+    {
+      return res.status(401).json({
+        ok: false,
+        message: "You don't permission to access this api",
+      });
+    }
 
-    //get roomId from url
     const roomId = req.query.roomId;
 
     const rooms = readChatRoomsDB();
 
-    //check if roomId exist
+    const findroom = rooms.findIndex((x) => x.roomId === roomId);
+    if(findroom === -1)
+      return res.status(404).json({ ok: false, message: "Invalid room id" });
+    return res.json({ ok: true, messages: rooms[findroom].messages });
+  }
+  else if (req.method === "POST") 
+  {
+    const user = checkToken(req);
+    if(!user)
+    {
+      return res.status(401).json({
+        ok: false,
+        message: "You don't permission to access this api",
+      });
+    }
 
-    //find room and return
-    //...
-  } else if (req.method === "POST") {
-    //check token
-
-    //get roomId from url
     const roomId = req.query.roomId;
     const rooms = readChatRoomsDB();
 
-    //check if roomId exist
-
-    //validate body
-    if (typeof req.body.text !== "string" || req.body.text.length === 0)
+    const findroom = rooms.findIndex((x) => x.roomId === roomId);
+    if(findroom === -1)
+      return res.status(404).json({ ok: false, message: "Invalid room id" });
+    
+    if(typeof req.body.text !== "string" || req.body.text.length === 0)
       return res.status(400).json({ ok: false, message: "Invalid text input" });
 
-    //create message
+    const newMessage = {
+      messageId: uuidv4(),
+      text: req.body.text,
+      username: user.username,
+    };
+    rooms[findroom].messages.push(newMessage);
 
     writeChatRoomsDB(rooms);
+
+    return res.json({
+      ok: true,
+      message: newMessage,
+    });
   }
 }
